@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -10,4 +5,1978 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////////////////////////////
+
+enum SchoolType {
+  COMMUNITY
+  INSTITUTIONAL
+  RELIGIOUS
+  OTHER
+}
+
+enum EducationLevel {
+  ECD
+  BASIC
+  SECONDARY
+  BASIC_SECONDARY
+}
+
+enum LanguageType {
+  ENGLISH
+  NEPALI
+  BILINGUAL
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum GenderType {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AttendanceType {
+  FULL_DAY
+  HALF_DAY
+  LEAVE
+  HOLIDAY
+}
+
+enum UserType {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  STAFF
+}
+
+enum AssessmentType {
+  FORMATIVE
+  SUMMATIVE
+  OBSERVATION
+  PRACTICAL
+  PROJECT
+}
+
+enum RelationshipType {
+  FATHER
+  MOTHER
+  GRANDFATHER
+  GRANDMOTHER
+  UNCLE
+  AUNT
+  SIBLING
+  LEGAL_GUARDIAN
+  OTHER
+}
+
+enum AssignmentType {
+  CLASS_TEACHER
+  SUBJECT_TEACHER
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// STUDENT_PHOTO and TEACHER_PHOTO are the single source of truth for profile
+// photos (see Student/Employee notes below — no photoUrl duplication).
+enum DocumentCategory {
+  STUDENT_PHOTO
+  TEACHER_PHOTO
+  BIRTH_CERTIFICATE
+  CITIZENSHIP
+  TRANSFER_CERTIFICATE
+  CHARACTER_CERTIFICATE
+  TEACHER_DOCUMENT
+  SCHOOL_DOCUMENT
+  OTHER
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  OTHER
+}
+
+enum SettingDataType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// MASTER DATA
+//////////////////////////////////////////////////////////////////////////////
+
+model MunicipalityType {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  // Official government identifier for this municipality type, used to
+  // cross-reference against government/NPC master datasets during seeding
+  // and sync. Unique so each government record maps to exactly one row.
+  governmentId Int      @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  localLevels LocalLevel[]
+
+  @@index([isActive])
+}
+
+model Province {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  // Official government identifier for this province, used to
+  // cross-reference against government/NPC master datasets during seeding
+  // and sync. Unique so each government record maps to exactly one row.
+  governmentId Int      @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  districts District[]
+  schools   School[]
+  campuses  Campus[]
+  students  Student[]
+  guardians Guardian[]
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model District {
+  id           String   @id @default(uuid())
+  provinceId   String
+  code         String
+  // Official government identifier for this district, used to
+  // cross-reference against government/NPC master datasets during seeding
+  // and sync. Unique so each government record maps to exactly one row.
+  governmentId Int      @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  province    Province     @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  localLevels LocalLevel[]
+  schools     School[]
+  campuses    Campus[]
+  students    Student[]
+  guardians   Guardian[]
+  employees   Employee[]
+
+  @@unique([provinceId, code])
+  @@index([isActive])
+}
+
+model LocalLevel {
+  id                 String   @id @default(uuid())
+  districtId         String
+  municipalityTypeId String
+  code               String
+  // Official government identifier for this local level, used to
+  // cross-reference against government/NPC master datasets during seeding
+  // and sync. Unique so each government record maps to exactly one row.
+  governmentId       Int      @unique
+  // Total number of wards within this local level.
+  totalWards         Int?
+  nameEnglish        String
+  nameNepali          String?
+  displayOrder       Int      @default(0)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  district         District         @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  municipalityType MunicipalityType @relation(fields: [municipalityTypeId], references: [id], onDelete: Restrict)
+
+  schools   School[]
+  campuses  Campus[]
+  students  Student[]
+  guardians Guardian[]
+  employees Employee[]
+
+  @@unique([districtId, code])
+  @@index([isActive])
+  @@index([municipalityTypeId])
+}
+
+model Gender {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  students  Student[]
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model Religion {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  students Student[]
+
+  @@index([isActive])
+}
+
+model BloodGroup {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  students Student[]
+
+  @@index([isActive])
+}
+
+model Nationality {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  students Student[]
+
+  @@index([isActive])
+}
+
+model Language {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  students Student[]
+
+  @@index([isActive])
+}
+
+model GradeMaster {
+  id             String         @id @default(uuid())
+  code           String         @unique
+  nameEnglish    String
+  nameNepali     String?
+  educationLevel EducationLevel @default(BASIC)
+  displayOrder   Int            @default(0)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  grades Grade[]
+
+  @@index([isActive])
+}
+
+model AcademicYearType {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  academicYears AcademicYear[]
+
+  @@index([isActive])
+}
+
+model AcademicTermType {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  academicTerms AcademicTerm[]
+
+  @@index([isActive])
+}
+
+model AttendanceStatus {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  studentAttendances StudentAttendance[]
+  teacherAttendances TeacherAttendance[]
+
+  @@index([isActive])
+}
+
+model PromotionStatus {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  promotionHistories PromotionHistory[]
+  studentEnrollments StudentEnrollment[]
+
+  @@index([isActive])
+}
+
+model AdmissionStatus {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  studentEnrollments StudentEnrollment[]
+
+  @@index([isActive])
+}
+
+model EnrollmentStatus {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  studentEnrollments StudentEnrollment[]
+
+  @@index([isActive])
+}
+
+model Designation {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  category     String? // e.g. ACADEMIC, ADMIN, SUPPORT — free-form so new staff types (Principal, Vice Principal, Accountant, Receptionist, IT Staff, etc.) never require a schema change
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model Department {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model AssessmentLevel {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  assessmentScores AssessmentScore[]
+
+  @@index([isActive])
+}
+
+model PerformanceLevel {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  reportCards ReportCard[]
+
+  @@index([isActive])
+}
+
+model UserStatus {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  users User[]
+
+  @@index([isActive])
+}
+
+model RoleType {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  roles Role[]
+
+  @@index([isActive])
+}
+
+model PermissionType {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  permissions Permission[]
+
+  @@index([isActive])
+}
+
+model AuditAction {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  auditLogs AuditLog[]
+
+  @@index([isActive])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// FOUNDATION MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model School {
+  id                 String         @id @default(uuid())
+  schoolCode         String         @unique
+  nameEnglish        String
+  nameNepali         String?
+  shortName          String?
+  schoolType         SchoolType
+  educationLevel     EducationLevel
+  registrationNumber String?
+  emisCode           String?
+  panNumber          String?
+  phone              String?
+  mobile             String?
+  email              String?
+  website            String?
+  logoUrl            String?
+
+  provinceId     String
+  districtId     String
+  localLevelId   String
+  wardNo         Int?
+  addressEnglish String
+  addressNepali  String?
+  postalCode     String?
+
+  visionEnglish  String?
+  visionNepali   String?
+  missionEnglish String?
+  missionNepali  String?
+  mottoEnglish   String?
+  mottoNepali    String?
+
+  timezone        String       @default("Asia/Kathmandu")
+  defaultLanguage LanguageType @default(BILINGUAL)
+
+  status    Status    @default(ACTIVE)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  province   Province   @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  district   District   @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  localLevel LocalLevel @relation(fields: [localLevelId], references: [id], onDelete: Restrict)
+
+  // Campuses, academic years, grades, and academic/exam history are protected
+  // with Restrict so a School can never be hard-deleted while any structural
+  // or historical data still references it — soft-delete (status/deletedAt)
+  // is the intended path for retiring a School.
+  campuses              Campus[]
+  setting               SchoolSetting?
+  academicYears         AcademicYear[]
+  grades                Grade[]
+  students              Student[]
+  employees             Employee[]
+  roles                 Role[]
+  assessments           Assessment[]
+  exams                 Exam[]
+  systemSettings        SystemSetting[]
+  documents             Document[]
+  notificationTemplates NotificationTemplate[]
+  notificationProviders NotificationProvider[]
+  notifications         Notification[]
+
+  @@index([schoolCode])
+  @@index([status])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([localLevelId])
+}
+
+model Campus {
+  id          String  @id @default(uuid())
+  schoolId    String
+  campusCode  String
+  nameEnglish String
+  nameNepali  String?
+  phone       String?
+  email       String?
+
+  provinceId     String
+  districtId     String
+  localLevelId   String
+  wardNo         Int?
+  addressEnglish String
+  addressNepali  String?
+
+  status    Status    @default(ACTIVE)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  // Restrict: a Campus must not disappear (and take enrollment/staffing
+  // history with it) as a side effect of deleting its School.
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  province   Province   @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  district   District   @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  localLevel LocalLevel @relation(fields: [localLevelId], references: [id], onDelete: Restrict)
+
+  // Students admitted with this campus as their base/admission campus.
+  // Per-academic-year campus (which can differ if a student transfers) lives on StudentEnrollment.
+  students           Student[]
+  classRooms         ClassRoom[]
+  studentEnrollments StudentEnrollment[]
+  teacherAssignments TeacherAssignment[]
+
+  @@unique([schoolId, campusCode])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([localLevelId])
+}
+
+model SchoolSetting {
+  id                    String       @id @default(uuid())
+  schoolId              String       @unique
+  // Single source of truth for "current academic year" — AcademicYear no
+  // longer carries its own isCurrent flag, eliminating the duplicate/racy
+  // source of truth that previously existed across two models.
+  currentAcademicYearId String?
+  currentLanguage       LanguageType @default(BILINGUAL)
+  reportHeader          String?
+  reportFooter          String?
+  allowParentPortal     Boolean      @default(false)
+  createdAt             DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime     @updatedAt @db.Timestamptz(6)
+
+  school              School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  currentAcademicYear AcademicYear? @relation(fields: [currentAcademicYearId], references: [id], onDelete: SetNull)
+
+  @@index([currentAcademicYearId])
+}
+
+model AcademicYear {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  academicYearTypeId String
+  name               String
+  startDate          DateTime @db.Date
+  endDate            DateTime @db.Date
+  startDateBS        String?
+  endDateBS          String?
+  status             Status   @default(ACTIVE)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict: AcademicYear anchors every downstream historical record
+  // (enrollment, attendance, assessment, exams, report cards, promotion).
+  // It must never be swept away by deleting its School.
+  school           School           @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  academicYearType AcademicYearType @relation(fields: [academicYearTypeId], references: [id], onDelete: Restrict)
+
+  terms                  AcademicTerm[]
+  currentForSettings     SchoolSetting[]
+  teacherAssignments     TeacherAssignment[]
+  studentEnrollments     StudentEnrollment[]
+  assessments            Assessment[]
+  studentAttendances     StudentAttendance[]
+  attendanceSummaries    AttendanceSummary[]
+  exams                  Exam[]
+  reportCards            ReportCard[]
+  promotionHistoriesFrom PromotionHistory[]  @relation("PromotionFromYear")
+  promotionHistoriesTo   PromotionHistory[]  @relation("PromotionToYear")
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@index([academicYearTypeId])
+}
+
+model AcademicTerm {
+  id                 String   @id @default(uuid())
+  academicYearId     String
+  academicTermTypeId String
+  name               String
+  startDate          DateTime @db.Date
+  endDate            DateTime @db.Date
+  startDateBS        String?
+  endDateBS          String?
+  orderNo            Int
+  status             Status   @default(ACTIVE)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  academicTermType AcademicTermType @relation(fields: [academicTermTypeId], references: [id], onDelete: Restrict)
+
+  assessments         Assessment[]
+  observations        Observation[]
+  remarks             Remark[]
+  reportCards         ReportCard[]
+  attendanceSummaries AttendanceSummary[]
+  exams               Exam[]
+
+  @@unique([academicYearId, name])
+  @@index([academicYearId])
+  @@index([academicTermTypeId])
+}
+
+model Grade {
+  id            String   @id @default(uuid())
+  schoolId      String
+  gradeMasterId String
+  code          String
+  displayOrder  Int
+  status        Status   @default(ACTIVE)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict: Grade is referenced by enrollment, assessment, and exam
+  // history and must not vanish as a side effect of deleting its School.
+  school      School      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  gradeMaster GradeMaster @relation(fields: [gradeMasterId], references: [id], onDelete: Restrict)
+
+  sections           Section[]
+  gradeSubjects      GradeSubject[]
+  competencies       Competency[]
+  assessments        Assessment[]
+  examSubjects       ExamSubject[]
+  studentEnrollments StudentEnrollment[]
+  teacherAssignments TeacherAssignment[]
+
+  promotionHistoriesFrom PromotionHistory[] @relation("PromotionFromGrade")
+  promotionHistoriesTo   PromotionHistory[] @relation("PromotionToGrade")
+
+  @@unique([schoolId, code])
+  @@index([gradeMasterId])
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  gradeId     String
+  classRoomId String?
+  name        String
+  capacity    Int?
+  status      Status   @default(ACTIVE)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  classRoom ClassRoom? @relation(fields: [classRoomId], references: [id], onDelete: SetNull)
+
+  enrollments        StudentEnrollment[]
+  teacherAssignments TeacherAssignment[]
+  studentAttendances StudentAttendance[]
+  reportCards        ReportCard[]
+
+  @@unique([gradeId, name])
+  @@index([classRoomId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PEOPLE MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model Student {
+  id                String   @id @default(uuid())
+  schoolId          String
+  admissionCampusId String
+  admissionNo       String
+  admissionDate     DateTime @db.Date
+  admissionDateBS   String?
+
+  firstNameEnglish String
+  lastNameEnglish  String
+  firstNameNepali  String?
+  lastNameNepali   String?
+
+  dateOfBirthAD DateTime @db.Date
+  dateOfBirthBS String?
+
+  genderId               String
+  bloodGroupId           String?
+  nationalityId          String?
+  religionId             String?
+  motherTongueLanguageId String?
+
+  provinceId     String
+  districtId     String
+  localLevelId   String
+  wardNo         Int?
+  addressEnglish String?
+  addressNepali  String?
+
+  // Photo storage lives exclusively on Document (documentCategory =
+  // STUDENT_PHOTO) via FileAsset — no photoUrl duplication here.
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  school          School       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  admissionCampus Campus       @relation(fields: [admissionCampusId], references: [id], onDelete: Restrict)
+  gender          Gender       @relation(fields: [genderId], references: [id], onDelete: Restrict)
+  bloodGroup      BloodGroup?  @relation(fields: [bloodGroupId], references: [id], onDelete: SetNull)
+  nationality     Nationality? @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
+  religion        Religion?    @relation(fields: [religionId], references: [id], onDelete: SetNull)
+  motherTongue    Language?    @relation(fields: [motherTongueLanguageId], references: [id], onDelete: SetNull)
+  province        Province     @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  district        District     @relation(fields: [districtId], references: [id], onDelete: Restrict)
+  localLevel      LocalLevel   @relation(fields: [localLevelId], references: [id], onDelete: Restrict)
+
+  user                User?
+  guardians           StudentGuardian[]
+  enrollments         StudentEnrollment[]
+  assessmentScores    AssessmentScore[]
+  observations        Observation[]
+  remarks             Remark[]
+  reportCards         ReportCard[]
+  promotionHistories  PromotionHistory[]
+  attendances         StudentAttendance[]
+  attendanceSummaries AttendanceSummary[]
+  examResults         ExamResult[]
+  documents           Document[]
+
+  // Admission number is unique within a school, not globally — a student at
+  // School A and a student at School B may legitimately share the same number.
+  @@unique([schoolId, admissionNo])
+  @@index([admissionCampusId])
+  @@index([genderId])
+  @@index([bloodGroupId])
+  @@index([nationalityId])
+  @@index([religionId])
+  @@index([motherTongueLanguageId])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([localLevelId])
+}
+
+// Historical academic record per student per academic year. Grade, Section,
+// Roll Number and Campus all change year to year (or mid-year on transfer),
+// so none of them live on Student directly — this preserves full history
+// instead of overwriting it every promotion cycle.
+model StudentEnrollment {
+  id                 String   @id @default(uuid())
+  studentId          String
+  academicYearId     String
+  campusId           String
+  gradeId            String
+  sectionId          String?
+  rollNo             String?
+  enrollmentDate     DateTime @db.Date
+  enrollmentDateBS   String?
+  admissionStatusId  String
+  promotionStatusId  String?
+  enrollmentStatusId String
+  remarks            String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict on student/academicYear/campus/grade: an enrollment record is
+  // permanent academic history and must never be lost to an accidental
+  // delete of the Student, AcademicYear, Campus, or Grade it belongs to.
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  campus           Campus           @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  grade            Grade            @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  section          Section?         @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  admissionStatus  AdmissionStatus  @relation(fields: [admissionStatusId], references: [id], onDelete: Restrict)
+  promotionStatus  PromotionStatus? @relation(fields: [promotionStatusId], references: [id], onDelete: SetNull)
+  enrollmentStatus EnrollmentStatus @relation(fields: [enrollmentStatusId], references: [id], onDelete: Restrict)
+
+  // One enrollment record per student per academic year.
+  @@unique([studentId, academicYearId])
+  // Roll number must be unique within a section for a given year (nulls are
+  // treated as distinct by Postgres, so unassigned roll numbers don't collide).
+  @@unique([academicYearId, sectionId, rollNo])
+  @@index([campusId])
+  @@index([gradeId])
+  @@index([sectionId])
+  @@index([admissionStatusId])
+  @@index([promotionStatusId])
+  @@index([enrollmentStatusId])
+}
+
+model Guardian {
+  id               String  @id @default(uuid())
+  fullNameEnglish  String
+  fullNameNepali   String?
+  phone            String
+  alternatePhone   String?
+  email            String?
+  occupation       String?
+  nationalIdNumber String?
+
+  provinceId     String?
+  districtId     String?
+  localLevelId   String?
+  addressEnglish String?
+  addressNepali  String?
+
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  province   Province?   @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  district   District?   @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  localLevel LocalLevel? @relation(fields: [localLevelId], references: [id], onDelete: SetNull)
+
+  // Guardian holds personal info only. Login credentials live separately on
+  // ParentAccount, which can see every child linked via StudentGuardian.
+  students               StudentGuardian[]
+  parentAccount          ParentAccount?
+  notificationRecipients NotificationRecipient[]
+
+  @@index([phone])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([localLevelId])
+}
+
+model StudentGuardian {
+  id                 String           @id @default(uuid())
+  studentId          String
+  guardianId         String
+  relationshipType   RelationshipType
+  isPrimaryContact   Boolean          @default(false)
+  isEmergencyContact Boolean          @default(false)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(6)
+
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
+}
+
+// Login/portal identity for a Guardian. Kept separate from Guardian so that
+// one guardian can exist in the system (e.g. as an emergency contact) without
+// necessarily having portal access, and so portal credentials never mix with
+// personal/contact data. Multi-child access comes for free through the
+// existing Guardian -> StudentGuardian -> Student graph.
+model ParentAccount {
+  id                 String    @id @default(uuid())
+  guardianId         String    @unique
+  username           String    @unique
+  email              String?   @unique
+  passwordHash       String
+  mustChangePassword Boolean   @default(true)
+  lastLoginAt        DateTime? @db.Timestamptz(6)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt          DateTime? @db.Timestamptz(6)
+
+  guardian       Guardian       @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  loginHistories LoginHistory[]
+}
+
+model Employee {
+  id           String @id @default(uuid())
+  schoolId     String
+  employeeCode String
+
+  firstNameEnglish String
+  lastNameEnglish  String
+  firstNameNepali  String?
+  lastNameNepali   String?
+
+  dateOfBirth   DateTime? @db.Date
+  dateOfBirthBS String?
+  genderId      String
+
+  phone String
+  email String?
+
+  provinceId     String?
+  districtId     String?
+  localLevelId   String?
+  addressEnglish String?
+  addressNepali  String?
+
+  // Free-text designation/department replaced with master-data lookups so
+  // new staff types (Principal, Vice Principal, Accountant, Receptionist,
+  // Office Staff, IT Staff, ...) can be added without a schema change.
+  designationId String?
+  departmentId  String?
+  joiningDate   DateTime @db.Date
+  joiningDateBS String?
+
+  // Photo storage lives exclusively on Document (documentCategory =
+  // TEACHER_PHOTO) via FileAsset — no photoUrl duplication here.
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  gender      Gender       @relation(fields: [genderId], references: [id], onDelete: Restrict)
+  province    Province?    @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  district    District?    @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  localLevel  LocalLevel?  @relation(fields: [localLevelId], references: [id], onDelete: SetNull)
+  designation Designation? @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  department  Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  teacher   Teacher?
+  user      User?
+  documents Document[]
+
+  @@unique([schoolId, employeeCode])
+  @@index([genderId])
+  @@index([designationId])
+  @@index([departmentId])
+  @@index([provinceId])
+  @@index([districtId])
+  @@index([localLevelId])
+}
+
+model Teacher {
+  id             String   @id @default(uuid())
+  employeeId     String   @unique
+  qualification  String?
+  specialization String?
+  isClassTeacher Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  teacherAssignments  TeacherAssignment[]
+  attendances         TeacherAttendance[]
+  attendanceSummaries AttendanceSummary[]
+  assessmentScores    AssessmentScore[]
+  observations        Observation[]
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  employeeId         String?   @unique
+  studentId          String?   @unique
+  username           String    @unique
+  email              String?   @unique
+  passwordHash       String
+  userType           UserType
+  userStatusId       String
+  mustChangePassword Boolean   @default(true)
+  lastLoginAt        DateTime? @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt          DateTime? @db.Timestamptz(6)
+
+  employee   Employee?  @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  student    Student?   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  userStatus UserStatus @relation(fields: [userStatusId], references: [id], onDelete: Restrict)
+
+  userRoles                  UserRole[]
+  loginHistories             LoginHistory[]
+  remarks                    Remark[]
+  generatedReportCards       ReportCard[]            @relation("GeneratedReportCards")
+  teacherSignedReportCards   ReportCard[]            @relation("TeacherSignedReportCards")
+  principalSignedReportCards ReportCard[]            @relation("PrincipalSignedReportCards")
+  markedStudentAttendances   StudentAttendance[]
+  markedTeacherAttendances   TeacherAttendance[]
+  createdNotifications       Notification[]
+  notificationRecipients     NotificationRecipient[]
+  auditLogs                  AuditLog[]
+  uploadedFiles              FileAsset[]
+  verifiedDocuments          Document[]
+
+  @@index([userStatusId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  schoolId    String?
+  roleTypeId  String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  school   School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  roleType RoleType @relation(fields: [roleTypeId], references: [id], onDelete: Restrict)
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([schoolId, name])
+  @@index([roleTypeId])
+}
+
+model Permission {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  permissionTypeId String
+  module           String
+  description      String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+
+  permissionType PermissionType @relation(fields: [permissionTypeId], references: [id], onDelete: Restrict)
+
+  rolePermissions RolePermission[]
+
+  @@index([permissionTypeId])
+}
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now()) @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+}
+
+// Generic login history for both staff/student Users and portal ParentAccounts.
+// Exactly one of userId / parentAccountId should be set (enforced at the
+// application layer — Prisma cannot express an XOR constraint natively).
+// Both parent relations use SetNull so login/audit history is preserved even
+// if the underlying User or ParentAccount is later removed.
+model LoginHistory {
+  id              String    @id @default(uuid())
+  userId          String?
+  parentAccountId String?
+  loginAt         DateTime  @default(now()) @db.Timestamptz(6)
+  logoutAt        DateTime? @db.Timestamptz(6)
+  ipAddress       String?
+  userAgent       String?
+  isSuccessful    Boolean   @default(true)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parentAccount ParentAccount? @relation(fields: [parentAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([parentAccountId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// ACADEMIC MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model Curriculum {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  nameEnglish String
+  nameNepali  String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  learningAreas LearningArea[]
+}
+
+model LearningArea {
+  id           String   @id @default(uuid())
+  curriculumId String
+  code         String
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+
+  subjects Subject[]
+
+  @@unique([curriculumId, code])
+}
+
+model Subject {
+  id             String   @id @default(uuid())
+  learningAreaId String
+  code           String   @unique
+  nameEnglish    String
+  nameNepali     String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  learningArea LearningArea @relation(fields: [learningAreaId], references: [id], onDelete: Restrict)
+
+  gradeSubjects      GradeSubject[]
+  teacherAssignments TeacherAssignment[]
+  competencies       Competency[]
+  assessments        Assessment[]
+  examSubjects       ExamSubject[]
+
+  @@index([learningAreaId])
+}
+
+model GradeSubject {
+  id           String   @id @default(uuid())
+  gradeId      String
+  subjectId    String
+  isCompulsory Boolean  @default(true)
+  creditHours  Int?
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([gradeId, subjectId])
+  @@index([subjectId])
+}
+
+model ClassRoom {
+  id        String   @id @default(uuid())
+  campusId  String
+  roomCode  String
+  roomName  String?
+  capacity  Int?
+  floor     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  sections Section[]
+
+  @@unique([campusId, roomCode])
+}
+
+// Unifies the old ClassTeacher and TeacherSubject models into a single
+// enterprise "who teaches what, where, and when" record. A CLASS_TEACHER
+// assignment has subjectId = null; a SUBJECT_TEACHER assignment always has a
+// subject. Campus is denormalized onto the row (in addition to being
+// derivable via section -> classRoom -> campus) to make yearly staffing
+// reports fast without deep joins.
+model TeacherAssignment {
+  id             String         @id @default(uuid())
+  teacherId      String
+  academicYearId String
+  campusId       String
+  gradeId        String
+  sectionId      String
+  subjectId      String?
+  assignmentType AssignmentType
+  isPrimary      Boolean        @default(true)
+  status         Status         @default(ACTIVE)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  // Restrict throughout: staffing history must survive deletion attempts on
+  // the AcademicYear, Campus, Grade, or Section it references.
+  teacher      Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  campus       Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  grade        Grade        @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  section      Section      @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  subject      Subject?     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([teacherId, sectionId, academicYearId, assignmentType, subjectId])
+  @@index([academicYearId])
+  @@index([campusId])
+  @@index([gradeId])
+  @@index([sectionId])
+  @@index([subjectId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// ASSESSMENT MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model Competency {
+  id           String   @id @default(uuid())
+  gradeId      String
+  subjectId    String
+  code         String
+  nameEnglish  String
+  nameNepali   String?
+  description  String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  indicators  Indicator[]
+  assessments Assessment[]
+  rubrics     Rubric[]
+
+  @@unique([gradeId, subjectId, code])
+  @@index([subjectId])
+}
+
+model Indicator {
+  id           String   @id @default(uuid())
+  competencyId String
+  code         String
+  nameEnglish  String
+  nameNepali   String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  assessments Assessment[]
+  rubrics     Rubric[]
+
+  @@unique([competencyId, code])
+}
+
+// Scoring guide/criteria that assessments can be graded against. Attached to
+// either a Competency (broad) or an Indicator (specific) level.
+model Rubric {
+  id           String   @id @default(uuid())
+  competencyId String?
+  indicatorId  String?
+  code         String
+  nameEnglish  String
+  nameNepali   String?
+  description  String?
+  minScore     Decimal? @db.Decimal(6, 2)
+  maxScore     Decimal? @db.Decimal(6, 2)
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  competency Competency? @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  indicator  Indicator?  @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  assessmentScores AssessmentScore[]
+
+  @@index([competencyId])
+  @@index([indicatorId])
+}
+
+model Assessment {
+  id             String         @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  academicTermId String
+  gradeId        String
+  subjectId      String
+  competencyId   String
+  indicatorId    String?
+  assessmentType AssessmentType
+  title          String
+  description    String?
+  assessmentDate DateTime       @db.Date
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  // Restrict throughout: an Assessment is a historical academic record and
+  // must survive deletion attempts on School, AcademicYear, AcademicTerm, or
+  // Grade — deleting those should be blocked while assessments reference them.
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+  grade        Grade        @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  competency   Competency   @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+  indicator    Indicator?   @relation(fields: [indicatorId], references: [id], onDelete: SetNull)
+
+  scores AssessmentScore[]
+
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@index([academicTermId])
+  @@index([gradeId])
+  @@index([subjectId])
+  @@index([competencyId])
+}
+
+model AssessmentScore {
+  id                  String   @id @default(uuid())
+  assessmentId        String
+  studentId           String
+  assessmentLevelId   String
+  rubricId            String?
+  assessedByTeacherId String?
+  score               Decimal? @db.Decimal(6, 2)
+  remarks             String?
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict on student: a scored assessment must survive an accidental
+  // Student delete attempt.
+  assessment        Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student           Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  assessmentLevel   AssessmentLevel @relation(fields: [assessmentLevelId], references: [id], onDelete: Restrict)
+  rubric            Rubric?         @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+  assessedByTeacher Teacher?        @relation(fields: [assessedByTeacherId], references: [id], onDelete: SetNull)
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+  @@index([assessmentLevelId])
+  @@index([rubricId])
+}
+
+model Observation {
+  id              String   @id @default(uuid())
+  studentId       String
+  teacherId       String
+  academicTermId  String
+  observationDate DateTime @db.Date
+  description     String
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  teacher      Teacher      @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([academicTermId])
+}
+
+model Remark {
+  id             String   @id @default(uuid())
+  studentId      String
+  academicTermId String
+  remarkEnglish  String
+  remarkNepali   String?
+  remarkByUserId String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+  remarkByUser User?        @relation(fields: [remarkByUserId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([academicTermId])
+}
+
+model ReportCard {
+  id                   String  @id @default(uuid())
+  studentId            String
+  academicYearId       String
+  academicTermId       String
+  sectionId            String
+  performanceLevelId   String?
+  overallRemarkEnglish String?
+  overallRemarkNepali  String?
+
+  // Teacher / Principal sign-off, required for the final printed report card.
+  teacherRemarkEnglish     String?
+  teacherRemarkNepali      String?
+  teacherSignedByUserId    String?
+  teacherSignatureFileId   String?
+  principalRemarkEnglish   String?
+  principalRemarkNepali    String?
+  principalSignedByUserId  String?
+  principalSignatureFileId String?
+
+  generatedAt       DateTime @default(now()) @db.Timestamptz(6)
+  generatedByUserId String?
+  isPublished       Boolean  @default(false)
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict on student/academicYear/academicTerm/section: a generated
+  // report card is a permanent historical record.
+  student                Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicYear           AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  academicTerm           AcademicTerm      @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+  section                Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  performanceLevel       PerformanceLevel? @relation(fields: [performanceLevelId], references: [id], onDelete: SetNull)
+  generatedByUser        User?             @relation("GeneratedReportCards", fields: [generatedByUserId], references: [id], onDelete: SetNull)
+  teacherSignedByUser    User?             @relation("TeacherSignedReportCards", fields: [teacherSignedByUserId], references: [id], onDelete: SetNull)
+  principalSignedByUser  User?             @relation("PrincipalSignedReportCards", fields: [principalSignedByUserId], references: [id], onDelete: SetNull)
+  teacherSignatureFile   FileAsset?        @relation("TeacherSignatureFiles", fields: [teacherSignatureFileId], references: [id], onDelete: SetNull)
+  principalSignatureFile FileAsset?        @relation("PrincipalSignatureFiles", fields: [principalSignatureFileId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, academicTermId])
+  @@index([academicYearId])
+  @@index([sectionId])
+  @@index([teacherSignedByUserId])
+  @@index([principalSignedByUserId])
+}
+
+model PromotionHistory {
+  id                 String   @id @default(uuid())
+  studentId          String
+  fromGradeId        String
+  toGradeId          String?
+  fromAcademicYearId String
+  toAcademicYearId   String?
+  promotionStatusId  String
+  remarks            String?
+  promotedAt         DateTime @default(now()) @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  student          Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  fromGrade        Grade           @relation("PromotionFromGrade", fields: [fromGradeId], references: [id], onDelete: Restrict)
+  toGrade          Grade?          @relation("PromotionToGrade", fields: [toGradeId], references: [id], onDelete: SetNull)
+  fromAcademicYear AcademicYear    @relation("PromotionFromYear", fields: [fromAcademicYearId], references: [id], onDelete: Restrict)
+  toAcademicYear   AcademicYear?   @relation("PromotionToYear", fields: [toAcademicYearId], references: [id], onDelete: SetNull)
+  promotionStatus  PromotionStatus @relation(fields: [promotionStatusId], references: [id], onDelete: Restrict)
+
+  @@index([studentId])
+  @@index([promotionStatusId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// ATTENDANCE MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model StudentAttendance {
+  id                 String         @id @default(uuid())
+  studentId          String
+  sectionId          String
+  academicYearId     String
+  attendanceDate     DateTime       @db.Date
+  attendanceStatusId String
+  dayType            AttendanceType @default(FULL_DAY)
+  remarks            String?
+  markedByUserId     String?
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(6)
+
+  // Restrict on student/section/academicYear: attendance history is a
+  // permanent record and must survive deletion attempts on those parents.
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  section          Section          @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  attendanceStatus AttendanceStatus @relation(fields: [attendanceStatusId], references: [id], onDelete: Restrict)
+  markedByUser     User?            @relation(fields: [markedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, attendanceDate])
+  @@index([sectionId])
+  @@index([academicYearId])
+  @@index([attendanceStatusId])
+}
+
+model TeacherAttendance {
+  id                 String         @id @default(uuid())
+  teacherId          String
+  attendanceDate     DateTime       @db.Date
+  attendanceStatusId String
+  dayType            AttendanceType @default(FULL_DAY)
+  remarks            String?
+  markedByUserId     String?
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(6)
+
+  teacher          Teacher          @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  attendanceStatus AttendanceStatus @relation(fields: [attendanceStatusId], references: [id], onDelete: Restrict)
+  markedByUser     User?            @relation(fields: [markedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([teacherId, attendanceDate])
+  @@index([attendanceStatusId])
+}
+
+model AttendanceSummary {
+  id                   String       @id @default(uuid())
+  studentId            String?
+  teacherId            String?
+  academicYearId       String
+  academicTermId       String?
+  month                Int?
+  totalDays            Int
+  presentDays          Int
+  absentDays           Int
+  lateDays             Int
+  leaveDays            Int
+  attendancePercentage Decimal      @db.Decimal(5, 2)
+  createdAt            DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime     @updatedAt @db.Timestamptz(6)
+
+  student      Student?      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  teacher      Teacher?      @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  academicTerm AcademicTerm? @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([academicYearId])
+  @@index([academicTermId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// EXAM MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model Exam {
+  id             String   @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  academicTermId String
+  nameEnglish    String
+  nameNepali     String?
+  startDate      DateTime @db.Date
+  endDate        DateTime @db.Date
+  startDateBS    String?
+  endDateBS      String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict throughout: exam records and their results must survive
+  // deletion attempts on School, AcademicYear, or AcademicTerm.
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  academicTerm AcademicTerm @relation(fields: [academicTermId], references: [id], onDelete: Restrict)
+
+  examSubjects ExamSubject[]
+
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@index([academicTermId])
+}
+
+model ExamSubject {
+  id        String    @id @default(uuid())
+  examId    String
+  subjectId String
+  gradeId   String
+  fullMarks Decimal   @db.Decimal(6, 2)
+  passMarks Decimal   @db.Decimal(6, 2)
+  examDate  DateTime? @db.Date
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+
+  examResults ExamResult[]
+
+  @@unique([examId, subjectId, gradeId])
+  @@index([subjectId])
+  @@index([gradeId])
+}
+
+model ExamResult {
+  id            String   @id @default(uuid())
+  examSubjectId String
+  studentId     String
+  marksObtained Decimal? @db.Decimal(6, 2)
+  isAbsent      Boolean  @default(false)
+  letterGrade   String?
+  gpa           Decimal? @db.Decimal(3, 2)
+  remarks       String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+
+  // Restrict on student: exam results must survive an accidental Student
+  // delete attempt.
+  examSubject ExamSubject @relation(fields: [examSubjectId], references: [id], onDelete: Cascade)
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([examSubjectId, studentId])
+  @@index([studentId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// DOCUMENT MANAGEMENT MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+// A physical/stored file, decoupled from what it represents. A single file
+// could in principle be referenced by more than one Document record. This is
+// the single source of truth for student/teacher photos and every other
+// document type — Student.photoUrl and Employee.photoUrl were removed to
+// eliminate the duplicate storage that previously existed.
+model FileAsset {
+  id               String   @id @default(uuid())
+  fileName         String
+  originalFileName String?
+  mimeType         String
+  sizeBytes        Int?
+  storagePath      String
+  checksum         String?
+  uploadedByUserId String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  uploadedByUser User? @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  documents                 Document[]
+  teacherSignatureOnCards   ReportCard[] @relation("TeacherSignatureFiles")
+  principalSignatureOnCards ReportCard[] @relation("PrincipalSignatureFiles")
+
+  @@index([uploadedByUserId])
+}
+
+// Reusable document record covering student photos, birth certificates,
+// citizenship, transfer/character certificates, teacher photos/documents and
+// school documents alike — exactly one of studentId / employeeId / schoolId
+// should be set depending on documentCategory (enforced at the application
+// layer). Student photos use STUDENT_PHOTO, teacher photos use TEACHER_PHOTO.
+// student/employee/school links use SetNull rather than Cascade so the
+// document/file history is preserved even if the owning record is removed.
+model Document {
+  id               String           @id @default(uuid())
+  fileId           String
+  documentCategory DocumentCategory
+  studentId        String?
+  employeeId       String?
+  schoolId         String?
+  title            String?
+  description      String?
+  issuedDate       DateTime?        @db.Date
+  expiryDate       DateTime?        @db.Date
+  isVerified       Boolean          @default(false)
+  verifiedByUserId String?
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
+
+  file           FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  student        Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  employee       Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  school         School?   @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  verifiedByUser User?     @relation(fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([fileId])
+  @@index([documentCategory])
+  @@index([studentId])
+  @@index([employeeId])
+  @@index([schoolId])
+  @@index([verifiedByUserId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// COMMUNICATION MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+// Reusable message template per channel (e.g. "fee-reminder-sms",
+// "attendance-alert-email") with {{placeholder}} style body content.
+model NotificationTemplate {
+  id           String              @id @default(uuid())
+  schoolId     String?
+  code         String
+  name         String
+  channel      NotificationChannel
+  subject      String?
+  bodyTemplate String
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
+
+  @@unique([schoolId, code, channel])
+}
+
+// Pluggable outbound provider config (e.g. Twilio for SMS, SendGrid for
+// Email, a WhatsApp Business API vendor, FCM/APNs for Push). New providers —
+// or new channels — can be added without touching the schema.
+model NotificationProvider {
+  id           String              @id @default(uuid())
+  schoolId     String?
+  channel      NotificationChannel
+  providerName String
+  config       Json
+  isDefault    Boolean             @default(false)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(6)
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  queueEntries NotificationQueue[]
+
+  @@index([schoolId, channel])
+}
+
+// The logical message to be sent. One Notification can fan out to many
+// recipients via NotificationRecipient. school uses SetNull so notification
+// history is preserved even if the owning School is removed.
+model Notification {
+  id              String               @id @default(uuid())
+  schoolId        String?
+  templateId      String?
+  channel         NotificationChannel
+  title           String
+  message         String
+  metadata        Json?
+  priority        NotificationPriority @default(NORMAL)
+  createdByUserId String?
+  createdAt       DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @db.Timestamptz(6)
+
+  school        School?               @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  template      NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdByUser User?                 @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  recipients         NotificationRecipient[]
+  notificationQueues NotificationQueue[]
+
+  @@index([schoolId])
+  @@index([templateId])
+}
+
+// Who should receive a given Notification — a staff/student User and/or a
+// Guardian (for parent-facing alerts). One row per recipient, independent of
+// how many channels/attempts it takes to deliver. user/guardian use SetNull
+// so the delivery/read record is preserved even if the person is removed.
+model NotificationRecipient {
+  id               String    @id @default(uuid())
+  notificationId   String
+  userId           String?
+  guardianId       String?
+  recipientAddress String?
+  isRead           Boolean   @default(false)
+  readAt           DateTime? @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guardian     Guardian?    @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+
+  queueEntries NotificationQueue[]
+
+  @@index([notificationId])
+  @@index([userId])
+  @@index([guardianId])
+}
+
+// A single unified send queue across all channels (replacing separate
+// per-channel queues), supporting scheduling and retry with backoff.
+model NotificationQueue {
+  id                      String              @id @default(uuid())
+  notificationId          String
+  notificationRecipientId String
+  channel                 NotificationChannel
+  providerId              String?
+  status                  NotificationStatus  @default(PENDING)
+  scheduledAt             DateTime?           @db.Timestamptz(6)
+  attemptCount            Int                 @default(0)
+  maxAttempts             Int                 @default(3)
+  lastAttemptAt           DateTime?           @db.Timestamptz(6)
+  nextRetryAt             DateTime?           @db.Timestamptz(6)
+  errorMessage            String?
+  createdAt               DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime            @updatedAt @db.Timestamptz(6)
+
+  notification Notification          @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  recipient    NotificationRecipient @relation(fields: [notificationRecipientId], references: [id], onDelete: Cascade)
+  provider     NotificationProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  logs NotificationLog[]
+
+  @@index([notificationId])
+  @@index([notificationRecipientId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([providerId])
+}
+
+// Immutable delivery-attempt history for a queue entry (status transitions,
+// provider responses, errors) — the audit trail for "did this message go out?"
+model NotificationLog {
+  id                  String             @id @default(uuid())
+  notificationQueueId String
+  status              NotificationStatus
+  responsePayload     Json?
+  errorMessage        String?
+  createdAt           DateTime           @default(now()) @db.Timestamptz(6)
+
+  notificationQueue NotificationQueue @relation(fields: [notificationQueueId], references: [id], onDelete: Cascade)
+
+  @@index([notificationQueueId])
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// SECURITY MODULE
+//////////////////////////////////////////////////////////////////////////////
+
+model AuditLog {
+  id              String      @id @default(uuid())
+  userId          String?
+  auditActionId   String
+  tableName       String
+  recordId        String?
+  oldValues       Json?
+  newValues       Json?
+  ipAddress       String?
+  userAgent       String?
+  browser         String?
+  operatingSystem String?
+  deviceType      DeviceType?
+  createdAt       DateTime    @default(now()) @db.Timestamptz(6)
+
+  // SetNull: audit log entries must be preserved even if the acting User is
+  // later removed — the log is evidence of what happened, independent of
+  // whether the actor's account still exists.
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  auditAction AuditAction @relation(fields: [auditActionId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([auditActionId])
+  @@index([tableName, recordId])
+}
+
+model SystemSetting {
+  id          String          @id @default(uuid())
+  schoolId    String?
+  key         String
+  value       String
+  dataType    SettingDataType @default(STRING)
+  description String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(6)
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, key])
 }
